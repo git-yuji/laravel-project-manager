@@ -27,9 +27,21 @@ class ProjectController extends Controller
     public function show(Request $request, Project $project)
     {
         $this->checkOwner($request, $project);
-        $revisions = $project->revisionRequests()->latest()->paginate(20);
+        $data = $request->validate(['status' => ['nullable', 'string', Rule::in(array_keys(RevisionRequest::STATUSES))]]);
+        $status = $data['status'] ?? null;
+        $revisions = $project->revisionRequests()
+            ->when($status, fn ($query) => $query->where('status', $status))
+            ->latest()->paginate(20)->withQueryString();
 
-        return view('projects.show', compact('project', 'revisions'));
+        if ($revisions->currentPage() > $revisions->lastPage()) {
+            return redirect()->route('projects.show', [
+                'project' => $project,
+                'status' => $status,
+                'page' => $revisions->lastPage(),
+            ]);
+        }
+
+        return view('projects.show', compact('project', 'revisions', 'status'));
     }
 
     public function storeRevision(Request $request, Project $project)
@@ -45,10 +57,16 @@ class ProjectController extends Controller
     {
         $this->checkOwner($request, $project);
         abort_unless($revision->project_id === $project->id, 404);
-        $data = $request->validate(['status' => ['required', Rule::in(array_keys(RevisionRequest::STATUSES))]]);
-        $revision->update($data);
+        $data = $request->validate([
+            'status' => ['required', Rule::in(array_keys(RevisionRequest::STATUSES))],
+            'filter_status' => ['nullable', 'string', Rule::in(array_keys(RevisionRequest::STATUSES))],
+        ]);
+        $revision->update(['status' => $data['status']]);
 
-        return redirect()->route('projects.show', $project)->with('success', '対応状況を更新しました。');
+        return redirect()->route('projects.show', [
+            'project' => $project,
+            'status' => $data['filter_status'] ?? null,
+        ])->with('success', '対応状況を更新しました。');
     }
 
     private function checkOwner(Request $request, Project $project): void

@@ -14,6 +14,16 @@
     </section>
     <section class="card">
         <h2>修正依頼</h2>
+        <form class="status-form" method="get" action="{{ route('projects.show', $project) }}">
+            <label for="filter-status">対応状況で絞り込み</label>
+            <select id="filter-status" name="status">
+                <option value="">すべて</option>
+                @foreach (\App\Models\RevisionRequest::STATUSES as $value => $label)
+                    <option value="{{ $value }}" @selected($status === $value)>{{ $label }}</option>
+                @endforeach
+            </select>
+            <button class="secondary">絞り込む</button>
+        </form>
         @forelse($revisions as $revision)
             <article class="revision">
                 <div class="bar"><span
@@ -21,13 +31,15 @@
                         class="muted">{{ $revision->created_at->format('Y/m/d H:i') }}</time></div>
                 <p class="pre">{{ $revision->content }}</p>
                 <form class="status-form" method="post" action="{{ route('revisions.update', [$project, $revision]) }}">
+                    <input type="hidden" name="filter_status" value="{{ $status }}">
                     @csrf @method('PATCH')<label for="status-{{ $revision->id }}">対応状況</label><select
                         id="status-{{ $revision->id }}" name="status">
                         @foreach (\App\Models\RevisionRequest::STATUSES as $value => $label)
                             <option value="{{ $value }}" @selected($revision->status === $value)>{{ $label }}</option>
                         @endforeach
-                    </select><button class="secondary">更新</button></form>
-        </article>@empty<p class="muted">まだ修正依頼がありません。</p>
+                    </select><button class="secondary">更新</button>
+                </form>
+        </article>@empty<p class="muted">{{ $status ? 'この対応状況の修正依頼はありません。' : 'まだ修正依頼がありません。' }}</p>
         @endforelse{{ $revisions->links('pagination') }}
     </section>
 @endsection
