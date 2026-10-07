@@ -71,4 +71,32 @@ class ProjectManagementTest extends TestCase
         $this->patch("/projects/{$other->id}/revisions/{$revision->id}", ['status' => 'completed'])->assertNotFound();
         $this->assertSame('pending', $revision->fresh()->status);
     }
+
+    public function test_revisions_can_be_filtered_by_status(): void
+    {
+        $user = User::factory()->create();
+        $project = Project::create(['user_id' => $user->id, 'name' => '案件']);
+        $project->revisionRequests()->create(['content' => '未対応の依頼', 'status' => 'pending']);
+        $project->revisionRequests()->create(['content' => '完了した依頼', 'status' => 'completed']);
+        $this->actingAs($user);
+        $this->get("/projects/{$project->id}?status=pending")
+            ->assertOk()->assertSee('未対応の依頼')->assertDontSee('完了した依頼');
+        $this->get("/projects/{$project->id}?status=")
+            ->assertOk()->assertSee('未対応の依頼')->assertSee('完了した依頼');
+        $this->get("/projects/{$project->id}?status=in_progress")
+            ->assertOk()->assertSee('この対応状況の修正依頼はありません。');
+        $this->getJson("/projects/{$project->id}?status=unknown")
+            ->assertUnprocessable()->assertJsonValidationErrors('status');
+    }
+
+    public function test_filter_is_preserved_when_changing_pages(): void
+    {
+        $user = User::factory()->create();
+        $project = Project::create(['user_id' => $user->id, 'name' => '案件']);
+        for ($i = 0; $i < 21; $i++) {
+            $project->revisionRequests()->create(['content' => "依頼{$i}", 'status' => 'pending']);
+        }
+        $this->actingAs($user)->get("/projects/{$project->id}?status=pending")
+            ->assertOk()->assertSee('status=pending&amp;page=2', false);
+    }
 }

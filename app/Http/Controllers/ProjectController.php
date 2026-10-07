@@ -27,9 +27,13 @@ class ProjectController extends Controller
     public function show(Request $request, Project $project)
     {
         $this->checkOwner($request, $project);
-        $revisions = $project->revisionRequests()->latest()->paginate(20);
+        $data = $request->validate(['status' => ['nullable', 'string', Rule::in(array_keys(RevisionRequest::STATUSES))]]);
+        $status = $data['status'] ?? null;
+        $revisions = $project->revisionRequests()
+            ->when($status, fn ($query) => $query->where('status', $status))
+            ->latest()->paginate(20)->withQueryString();
 
-        return view('projects.show', compact('project', 'revisions'));
+        return view('projects.show', compact('project', 'revisions', 'status'));
     }
 
     public function storeRevision(Request $request, Project $project)
