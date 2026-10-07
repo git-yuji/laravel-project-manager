@@ -31,12 +31,14 @@
                         class="muted">{{ $revision->created_at->format('Y/m/d H:i') }}</time></div>
                 <p class="pre">{{ $revision->content }}</p>
                 <form class="status-form" method="post" action="{{ route('revisions.update', [$project, $revision]) }}">
+                    <input type="hidden" name="filter_status" value="{{ $status }}">
                     @csrf @method('PATCH')<label for="status-{{ $revision->id }}">対応状況</label><select
                         id="status-{{ $revision->id }}" name="status">
                         @foreach (\App\Models\RevisionRequest::STATUSES as $value => $label)
                             <option value="{{ $value }}" @selected($revision->status === $value)>{{ $label }}</option>
                         @endforeach
-                    </select><button class="secondary">更新</button></form>
+                    </select><button class="secondary">更新</button>
+                </form>
         </article>@empty<p class="muted">{{ $status ? 'この対応状況の修正依頼はありません。' : 'まだ修正依頼がありません。' }}</p>
         @endforelse{{ $revisions->links('pagination') }}
     </section>
