@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Project;
 use App\Models\RevisionRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class ProjectController extends Controller
@@ -30,6 +31,7 @@ class ProjectController extends Controller
         $data = $request->validate(['status' => ['nullable', 'string', Rule::in(array_keys(RevisionRequest::STATUSES))]]);
         $status = $data['status'] ?? null;
         $revisions = $project->revisionRequests()
+            ->with('statusHistories.user')
             ->when($status, fn ($query) => $query->where('status', $status))
             ->latest()->paginate(20)->withQueryString();
 
@@ -61,7 +63,20 @@ class ProjectController extends Controller
             'status' => ['required', Rule::in(array_keys(RevisionRequest::STATUSES))],
             'filter_status' => ['nullable', 'string', Rule::in(array_keys(RevisionRequest::STATUSES))],
         ]);
-        $revision->update(['status' => $data['status']]);
+        DB::transaction(function () use ($revision, $data, $request): void {
+            $revision = RevisionRequest::whereKey($revision->id)->lockForUpdate()->firstOrFail();
+
+            if ($revision->status === $data['status']) {
+                return;
+            }
+
+            $revision->statusHistories()->create([
+                'user_id' => $request->user()->id,
+                'from_status' => $revision->status,
+                'to_status' => $data['status'],
+            ]);
+            $revision->update(['status' => $data['status']]);
+        });
 
         return redirect()->route('projects.show', [
             'project' => $project,
