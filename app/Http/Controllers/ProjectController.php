@@ -64,6 +64,11 @@ class ProjectController extends Controller
             'filter_status' => ['nullable', 'string', Rule::in(array_keys(RevisionRequest::STATUSES))],
         ]);
         DB::transaction(function () use ($revision, $data, $request): void {
+            if (DB::connection()->getDriverName() === 'sqlite') {
+                // SQLite needs a write before reading to serialize competing updates, including on PHP 8.3.
+                RevisionRequest::whereKey($revision->id)->toBase()->update(['status' => DB::raw('status')]);
+            }
+
             $revision = RevisionRequest::whereKey($revision->id)->lockForUpdate()->firstOrFail();
 
             if ($revision->status === $data['status']) {
