@@ -39,6 +39,19 @@
                         @endforeach
                     </select><button class="secondary">更新</button>
                 </form>
+                <details>
+                    <summary>対応状況の変更履歴（{{ $revision->statusHistories->count() }}件）</summary>
+                    @forelse ($revision->statusHistories as $history)
+                        <p>
+                            <time>{{ $history->created_at->format('Y/m/d H:i:s') }}</time>
+                            {{ $history->user?->name ?? '削除されたユーザー' }}：
+                            {{ \App\Models\RevisionRequest::STATUSES[$history->from_status] }} →
+                            {{ \App\Models\RevisionRequest::STATUSES[$history->to_status] }}
+                        </p>
+                    @empty
+                        <p class="muted">変更履歴はまだありません。</p>
+                    @endforelse
+                </details>
         </article>@empty<p class="muted">{{ $status ? 'この対応状況の修正依頼はありません。' : 'まだ修正依頼がありません。' }}</p>
         @endforelse{{ $revisions->links('pagination') }}
     </section>
