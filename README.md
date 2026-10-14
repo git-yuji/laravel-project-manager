@@ -34,6 +34,8 @@ http://127.0.0.1:8000 にアクセスします。
 
 ## コードチェック・テスト
 
+プルリクエストのコードレビューにはDevin Reviewを使用しています。レビューの指摘を確認し、必要な修正とテストを行ってからマージしています。
+
 PHPの書式チェックにはLaravel Pint、Bladeの整形にはblade-formatter、静的解析にはLarastan（PHPStanのLaravel向け拡張）を使用しています。Larastanは `app` ディレクトリを対象にレベル5で解析します。設定は `phpstan.neon` に記載しています。
 
 初回は `npm ci` でBladeフォーマッターをインストールしてください。Bladeの整形設定は `.bladeformatterrc.json` に記載しています。
