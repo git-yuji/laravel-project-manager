@@ -17,18 +17,21 @@ class ProjectController extends Controller
         $data = $request->validate(['search' => [
             Rule::requiredIf(is_string($searchInput) && str_contains($searchInput, "\0")),
             'nullable', 'string', 'max:100', 'not_regex:/\x00/',
-        ]]);
+        ], 'archive' => ['nullable', 'string', Rule::in(['active', 'archived'])]]);
+        $archive = $data['archive'] ?? 'active';
         $search = $data['search'] ?? '';
         $searchPattern = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search).'%';
+        $listParameters = ['search' => $search] + ($archive === 'archived' ? ['archive' => 'archived'] : []);
         $projects = Project::where('user_id', $request->user()->id)
+            ->when($archive === 'archived', fn ($query) => $query->whereNotNull('archived_at'), fn ($query) => $query->whereNull('archived_at'))
             ->when($search !== '', fn ($query) => $query->whereRaw("name LIKE ? ESCAPE '!'", [$searchPattern]))
-            ->withCount('revisionRequests')->latest()->paginate(10)->appends(['search' => $search]);
+            ->withCount('revisionRequests')->latest()->paginate(10)->appends($listParameters);
 
         if ($projects->currentPage() > $projects->lastPage()) {
-            return redirect()->route('projects.index', ['search' => $search, 'page' => $projects->lastPage()]);
+            return redirect()->route('projects.index', $listParameters + ['page' => $projects->lastPage()]);
         }
 
-        return view('projects.index', compact('projects', 'search'));
+        return view('projects.index', compact('projects', 'search', 'archive'));
     }
 
     public function store(Request $request)
@@ -132,6 +135,22 @@ class ProjectController extends Controller
             'status' => $data['filter_status'] ?? null,
             'page' => $data['page'] ?? null,
         ])->with('success', '修正依頼の内容を更新しました。');
+    }
+
+    public function archive(Request $request, Project $project): RedirectResponse
+    {
+        $this->checkOwner($request, $project);
+        Project::whereKey($project->id)->whereNull('archived_at')->update(['archived_at' => now()]);
+
+        return redirect()->route('projects.show', $project)->with('success', '案件をアーカイブしました。');
+    }
+
+    public function restore(Request $request, Project $project): RedirectResponse
+    {
+        $this->checkOwner($request, $project);
+        Project::whereKey($project->id)->whereNotNull('archived_at')->update(['archived_at' => null]);
+
+        return redirect()->route('projects.show', $project)->with('success', '案件を進行中に戻しました。');
     }
 
     private function checkOwner(Request $request, Project $project): void

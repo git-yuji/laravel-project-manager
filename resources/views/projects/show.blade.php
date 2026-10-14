@@ -1,8 +1,18 @@
 @extends('layout')
 @section('content')
-    <a href="{{ route('projects.index') }}">
+    <a href="{{ route('projects.index', $project->archived_at ? ['archive' => 'archived'] : []) }}">
         ← 案件一覧</a>
-    <h1>{{ $project->name }}</h1>
+    <div class="bar">
+        <h1>{{ $project->name }}</h1>
+        <form method="post" action="{{ route($project->archived_at ? 'projects.restore' : 'projects.archive', $project) }}">
+            @csrf
+            @method('PATCH')
+            <button class="secondary">{{ $project->archived_at ? '進行中に戻す' : '案件をアーカイブ' }}</button>
+        </form>
+    </div>
+    @if ($project->archived_at)
+        <p class="muted">アーカイブ済み · {{ $project->archived_at->format('Y/m/d H:i') }}</p>
+    @endif
     @if ($project->description)
         <p class="pre muted">{{ $project->description }}</p>
     @endif

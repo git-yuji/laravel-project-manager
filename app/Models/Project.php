@@ -9,6 +9,11 @@ class Project extends Model
 {
     protected $fillable = ['user_id', 'name', 'description'];
 
+    protected function casts(): array
+    {
+        return ['archived_at' => 'datetime'];
+    }
+
     public function revisionRequests(): HasMany
     {
         return $this->hasMany(RevisionRequest::class);
