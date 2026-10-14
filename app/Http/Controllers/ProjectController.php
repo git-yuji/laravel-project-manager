@@ -13,9 +13,18 @@ class ProjectController extends Controller
 {
     public function index(Request $request)
     {
-        $projects = Project::where('user_id', $request->user()->id)->withCount('revisionRequests')->latest()->paginate(10);
+        $data = $request->validate(['search' => ['nullable', 'string', 'max:100']]);
+        $search = $data['search'] ?? '';
+        $searchPattern = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search).'%';
+        $projects = Project::where('user_id', $request->user()->id)
+            ->when($search !== '', fn ($query) => $query->whereRaw("name LIKE ? ESCAPE '!'", [$searchPattern]))
+            ->withCount('revisionRequests')->latest()->paginate(10)->appends(['search' => $search]);
 
-        return view('projects.index', compact('projects'));
+        if ($projects->currentPage() > $projects->lastPage()) {
+            return redirect()->route('projects.index', ['search' => $search, 'page' => $projects->lastPage()]);
+        }
+
+        return view('projects.index', compact('projects', 'search'));
     }
 
     public function store(Request $request)
