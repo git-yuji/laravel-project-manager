@@ -19,7 +19,16 @@
             <h2>登録済みの案件</h2>
             <span class="count">{{ $projects->total() }} 件{{ $search !== '' ? 'の検索結果' : '' }}</span>
         </div>
+        <nav class="status-form archive-tabs" aria-label="案件の表示区分">
+            <a class="{{ $archive === 'active' ? 'badge in_progress' : 'muted' }}"
+                href="{{ route('projects.index', ['search' => $search]) }}"
+                @if ($archive === 'active') aria-current="page" @endif>進行中</a>
+            <a class="{{ $archive === 'archived' ? 'badge in_progress' : 'muted' }}"
+                href="{{ route('projects.index', ['archive' => 'archived', 'search' => $search]) }}"
+                @if ($archive === 'archived') aria-current="page" @endif>アーカイブ済み</a>
+        </nav>
         <form class="search-form" method="get" action="{{ route('projects.index') }}">
+            <input type="hidden" name="archive" value="{{ $archive }}">
             <div class="search-field">
                 <label for="project-search">案件名で検索</label>
                 <input id="project-search" name="search" maxlength="100" value="{{ $search }}"
@@ -27,13 +36,15 @@
             </div>
             <button>検索</button>
             @if ($search !== '')
-                <a href="{{ route('projects.index') }}">検索をクリア</a>
+                <a
+                    href="{{ route('projects.index', $archive === 'archived' ? ['archive' => 'archived'] : []) }}">検索をクリア</a>
             @endif
         </form>
         @forelse($projects as $project)
             <a class="project" href="{{ route('projects.show', $project) }}"><strong>{{ $project->name }}</strong><span
                 class="muted">修正依頼 {{ $project->revision_requests_count }}件 →</span></a>@empty<p class="empty-state">
-                {{ $search !== '' ? '検索条件に一致する案件がありません。' : 'まだ案件がありません。最初の案件を登録しましょう。' }}</p>
+                {{ $search !== '' ? '検索条件に一致する案件がありません。' : ($archive === 'archived' ? 'アーカイブ済みの案件はありません。' : 'まだ案件がありません。最初の案件を登録しましょう。') }}
+            </p>
         @endforelse{{ $projects->links('pagination') }}
     </section>
 @endsection
