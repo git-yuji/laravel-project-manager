@@ -13,7 +13,7 @@ class ProjectController extends Controller
 {
     public function index(Request $request)
     {
-        $data = $request->validate(['search' => ['nullable', 'string', 'max:100']]);
+        $data = $request->validate(['search' => ['nullable', 'string', 'max:100', 'not_regex:/\x00/']]);
         $search = $data['search'] ?? '';
         $searchPattern = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search).'%';
         $projects = Project::where('user_id', $request->user()->id)
@@ -29,7 +29,7 @@ class ProjectController extends Controller
 
     public function store(Request $request)
     {
-        $data = $request->validate(['name' => ['required', 'string', 'max:100'], 'description' => ['nullable', 'string', 'max:2000']]);
+        $data = $request->validate(['name' => ['required', 'string', 'max:100', 'not_regex:/\x00/'], 'description' => ['nullable', 'string', 'max:2000']]);
         $project = Project::create($data + ['user_id' => $request->user()->id]);
 
         return redirect()->route('projects.show', $project)->with('success', '案件を登録しました。');
@@ -39,7 +39,7 @@ class ProjectController extends Controller
     {
         $this->checkOwner($request, $project);
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:100'],
+            'name' => ['required', 'string', 'max:100', 'not_regex:/\x00/'],
             'description' => ['nullable', 'string', 'max:2000'],
         ]);
         $project->update($data);

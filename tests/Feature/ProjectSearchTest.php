@@ -73,6 +73,28 @@ class ProjectSearchTest extends TestCase
             'HTML' => ['"><script>alert(1)</script>'], 'zero' => ['0'], 'maximum length' => [str_repeat('案', 100)]];
     }
 
+    public function test_search_rejects_embedded_nul_instead_of_matching_truncated_pattern(): void
+    {
+        $owner = User::factory()->create();
+        Project::create(['user_id' => $owner->id, 'name' => 'foo']);
+
+        $this->actingAs($owner)->getJson(route('projects.index', ['search' => "foo\0bar"]))
+            ->assertUnprocessable()->assertJsonValidationErrors('search');
+    }
+
+    public function test_project_creation_and_update_reject_embedded_nul_names(): void
+    {
+        $owner = User::factory()->create();
+        $project = Project::create(['user_id' => $owner->id, 'name' => '元の案件']);
+        $this->actingAs($owner);
+
+        $this->post(route('projects.store'), ['name' => "foo\0bar"])->assertSessionHasErrors('name');
+        $this->patch(route('projects.update', $project), ['name' => "foo\0bar"])->assertSessionHasErrors('name');
+
+        $this->assertDatabaseCount('projects', 1);
+        $this->assertDatabaseHas('projects', ['id' => $project->id, 'name' => '元の案件']);
+    }
+
     public function test_invalid_search_is_rejected_and_guests_cannot_search(): void
     {
         $url = route('projects.index');
