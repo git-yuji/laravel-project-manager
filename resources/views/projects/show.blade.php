@@ -7,6 +7,21 @@
         <p class="pre muted">{{ $project->description }}</p>
     @endif
     <section class="card">
+        <details @if ($errors->has('name') || $errors->has('description')) open @endif>
+            <summary>案件情報を編集</summary>
+            <form method="post" action="{{ route('projects.update', $project) }}">
+                @csrf
+                @method('PATCH')
+                <label for="project-name">案件名（必須）</label>
+                <input id="project-name" name="name" maxlength="100"
+                    value="{{ is_string(old('name')) ? old('name') : $project->name }}" required>
+                <label for="project-description">説明</label>
+                <textarea id="project-description" name="description" maxlength="2000" rows="3">{{ is_string(old('description', $project->description)) ? old('description', $project->description) : '' }}</textarea>
+                <button>案件情報を保存</button>
+            </form>
+        </details>
+    </section>
+    <section class="card">
         <h2>修正依頼を追加</h2>
         <form method="post" action="{{ route('revisions.store', $project) }}">@csrf<label for="content">修正内容（必須）</label>
             <textarea id="content" name="content" maxlength="2000" rows="3" placeholder="例：トップページの見出しを変更する" required>{{ old('content') }}</textarea><button>修正依頼を追加</button>

@@ -13,6 +13,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'destroy'])->name('logout');
     Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
     Route::post('/projects', [ProjectController::class, 'store'])->name('projects.store');
+    Route::patch('/projects/{project}', [ProjectController::class, 'update'])->name('projects.update');
     Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
     Route::post('/projects/{project}/revisions', [ProjectController::class, 'storeRevision'])->name('revisions.store');
     Route::patch('/projects/{project}/revisions/{revision}', [ProjectController::class, 'updateRevision'])->name('revisions.update');
