@@ -13,14 +13,27 @@ class ProjectController extends Controller
 {
     public function index(Request $request)
     {
-        $projects = Project::where('user_id', $request->user()->id)->withCount('revisionRequests')->latest()->paginate(10);
+        $searchInput = $request->input('search');
+        $data = $request->validate(['search' => [
+            Rule::requiredIf(is_string($searchInput) && str_contains($searchInput, "\0")),
+            'nullable', 'string', 'max:100', 'not_regex:/\x00/',
+        ]]);
+        $search = $data['search'] ?? '';
+        $searchPattern = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search).'%';
+        $projects = Project::where('user_id', $request->user()->id)
+            ->when($search !== '', fn ($query) => $query->whereRaw("name LIKE ? ESCAPE '!'", [$searchPattern]))
+            ->withCount('revisionRequests')->latest()->paginate(10)->appends(['search' => $search]);
 
-        return view('projects.index', compact('projects'));
+        if ($projects->currentPage() > $projects->lastPage()) {
+            return redirect()->route('projects.index', ['search' => $search, 'page' => $projects->lastPage()]);
+        }
+
+        return view('projects.index', compact('projects', 'search'));
     }
 
     public function store(Request $request)
     {
-        $data = $request->validate(['name' => ['required', 'string', 'max:100'], 'description' => ['nullable', 'string', 'max:2000']]);
+        $data = $request->validate(['name' => ['required', 'string', 'max:100', 'not_regex:/\x00/'], 'description' => ['nullable', 'string', 'max:2000']]);
         $project = Project::create($data + ['user_id' => $request->user()->id]);
 
         return redirect()->route('projects.show', $project)->with('success', '案件を登録しました。');
@@ -30,7 +43,7 @@ class ProjectController extends Controller
     {
         $this->checkOwner($request, $project);
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:100'],
+            'name' => ['required', 'string', 'max:100', 'not_regex:/\x00/'],
             'description' => ['nullable', 'string', 'max:2000'],
         ]);
         $project->update($data);
