@@ -45,6 +45,19 @@
                         class="badge {{ $revision->status }}">{{ \App\Models\RevisionRequest::STATUSES[$revision->status] }}</span><time
                         class="muted">{{ $revision->created_at->format('Y/m/d H:i') }}</time></div>
                 <p class="pre">{{ $revision->content }}</p>
+                <details @if ($errors->has('edit_content.' . $revision->id)) open @endif>
+                    <summary>修正内容を編集</summary>
+                    <form method="post" action="{{ route('revisions.content.update', [$project, $revision]) }}">
+                        @csrf
+                        @method('PATCH')
+                        <input type="hidden" name="filter_status" value="{{ $status }}">
+                        <input type="hidden" name="page" value="{{ $revisions->currentPage() }}">
+                        <label for="edit-content-{{ $revision->id }}">修正内容（必須）</label>
+                        <textarea id="edit-content-{{ $revision->id }}" name="edit_content[{{ $revision->id }}]" maxlength="2000"
+                            rows="3" required>{{ is_string(old('edit_content.' . $revision->id, $revision->content)) ? old('edit_content.' . $revision->id, $revision->content) : '' }}</textarea>
+                        <button>修正内容を保存</button>
+                    </form>
+                </details>
                 <form class="status-form" method="post" action="{{ route('revisions.update', [$project, $revision]) }}">
                     <input type="hidden" name="filter_status" value="{{ $status }}">
                     @csrf @method('PATCH')<label for="status-{{ $revision->id }}">対応状況</label><select
