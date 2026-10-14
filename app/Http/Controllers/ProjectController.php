@@ -13,7 +13,11 @@ class ProjectController extends Controller
 {
     public function index(Request $request)
     {
-        $data = $request->validate(['search' => ['nullable', 'string', 'max:100', 'not_regex:/\x00/']]);
+        $searchInput = $request->input('search');
+        $data = $request->validate(['search' => [
+            Rule::requiredIf(is_string($searchInput) && str_contains($searchInput, "\0")),
+            'nullable', 'string', 'max:100', 'not_regex:/\x00/',
+        ]]);
         $search = $data['search'] ?? '';
         $searchPattern = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search).'%';
         $projects = Project::where('user_id', $request->user()->id)
