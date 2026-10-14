@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Project;
 use App\Models\RevisionRequest;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -23,6 +24,18 @@ class ProjectController extends Controller
         $project = Project::create($data + ['user_id' => $request->user()->id]);
 
         return redirect()->route('projects.show', $project)->with('success', '案件を登録しました。');
+    }
+
+    public function update(Request $request, Project $project): RedirectResponse
+    {
+        $this->checkOwner($request, $project);
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'description' => ['nullable', 'string', 'max:2000'],
+        ]);
+        $project->update($data);
+
+        return redirect()->route('projects.show', $project)->with('success', '案件情報を更新しました。');
     }
 
     public function show(Request $request, Project $project)
