@@ -39,6 +39,36 @@ class ProjectArchiveTest extends TestCase
         $this->get(route('projects.index'))->assertOk()->assertSee('保存する案件');
     }
 
+    public function test_owner_can_edit_archived_project_and_revision_without_restoring_project(): void
+    {
+        $owner = User::factory()->create();
+        $project = Project::create(['user_id' => $owner->id, 'name' => '元の案件']);
+        $project->archived_at = '2026-10-14 12:00:00';
+        $project->save();
+        $revision = $project->revisionRequests()->create(['content' => '元の依頼']);
+        $this->actingAs($owner);
+
+        $this->patch(route('projects.update', $project), ['name' => '編集後の案件', 'description' => '編集後の説明'])
+            ->assertRedirect(route('projects.show', $project));
+        $this->patch(route('revisions.content.update', [$project, $revision]), [
+            'edit_content' => [$revision->id => '編集後の依頼'],
+        ])->assertRedirect(route('projects.show', $project));
+        $this->patch(route('revisions.update', [$project, $revision]), ['status' => 'completed'])
+            ->assertRedirect(route('projects.show', $project));
+
+        $this->assertDatabaseHas('projects', ['id' => $project->id, 'name' => '編集後の案件',
+            'description' => '編集後の説明', 'archived_at' => '2026-10-14 12:00:00']);
+        $this->assertDatabaseHas('revision_requests', ['id' => $revision->id, 'project_id' => $project->id,
+            'content' => '編集後の依頼', 'status' => 'completed']);
+        $this->assertDatabaseHas('revision_status_histories', ['revision_request_id' => $revision->id,
+            'user_id' => $owner->id, 'from_status' => 'pending', 'to_status' => 'completed']);
+        $this->assertDatabaseCount('revision_status_histories', 1);
+        $this->get(route('projects.show', $project))->assertOk()->assertSee('編集後の案件')
+            ->assertSee('編集後の説明')->assertSee('編集後の依頼')->assertSee('進行中に戻す');
+        $this->get(route('projects.index'))->assertOk()->assertDontSee('編集後の案件');
+        $this->get(route('projects.index', ['archive' => 'archived']))->assertOk()->assertSee('編集後の案件');
+    }
+
     public function test_archived_search_pagination_clear_and_scope_are_preserved(): void
     {
         $owner = User::factory()->create();
