@@ -83,6 +83,27 @@ class ProjectEditTest extends TestCase
         $this->assertMatchesRegularExpression('/<details\s+open\s*>/', $response->getContent());
     }
 
+    #[DataProvider('arrayInputs')]
+    public function test_array_input_displays_validation_errors_without_breaking_project_page(array $input): void
+    {
+        $owner = User::factory()->create();
+        $project = Project::create(['user_id' => $owner->id, 'name' => '元の案件', 'description' => '元の説明']);
+
+        $this->actingAs($owner)->from(route('projects.show', $project))->followingRedirects()
+            ->patch(route('projects.update', $project), $input)->assertOk()
+            ->assertSee('入力内容を確認してください。')
+            ->assertSee('value="元の案件"', false)->assertSee('元の説明');
+        $this->assertDatabaseHas('projects', ['id' => $project->id, 'name' => '元の案件', 'description' => '元の説明']);
+    }
+
+    public static function arrayInputs(): array
+    {
+        return [
+            'array name' => [['name' => ['案件'], 'description' => '元の説明']],
+            'array description' => [['name' => '元の案件', 'description' => ['説明']]],
+        ];
+    }
+
     public function test_guests_and_other_users_cannot_update_project(): void
     {
         $owner = User::factory()->create();

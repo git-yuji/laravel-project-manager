@@ -13,9 +13,10 @@
                 @csrf
                 @method('PATCH')
                 <label for="project-name">案件名（必須）</label>
-                <input id="project-name" name="name" maxlength="100" value="{{ old('name', $project->name) }}" required>
+                <input id="project-name" name="name" maxlength="100"
+                    value="{{ is_string(old('name')) ? old('name') : $project->name }}" required>
                 <label for="project-description">説明</label>
-                <textarea id="project-description" name="description" maxlength="2000" rows="3">{{ old('description', $project->description) }}</textarea>
+                <textarea id="project-description" name="description" maxlength="2000" rows="3">{{ is_string(old('description', $project->description)) ? old('description', $project->description) : '' }}</textarea>
                 <button>案件情報を保存</button>
             </form>
         </details>
