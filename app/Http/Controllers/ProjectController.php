@@ -102,6 +102,25 @@ class ProjectController extends Controller
         ])->with('success', '対応状況を更新しました。');
     }
 
+    public function updateRevisionContent(Request $request, Project $project, RevisionRequest $revision): RedirectResponse
+    {
+        $this->checkOwner($request, $project);
+        abort_unless($revision->project_id === $project->id, 404);
+        $contentKey = 'edit_content.'.$revision->id;
+        $data = $request->validate([
+            $contentKey => ['required', 'string', 'max:2000'],
+            'filter_status' => ['nullable', 'string', Rule::in(array_keys(RevisionRequest::STATUSES))],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+        $revision->update(['content' => data_get($data, $contentKey)]);
+
+        return redirect()->route('projects.show', [
+            'project' => $project,
+            'status' => $data['filter_status'] ?? null,
+            'page' => $data['page'] ?? null,
+        ])->with('success', '修正依頼の内容を更新しました。');
+    }
+
     private function checkOwner(Request $request, Project $project): void
     {
         abort_unless($project->user_id === $request->user()->id, 404);
