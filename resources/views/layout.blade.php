@@ -10,10 +10,20 @@
 
     <body>
         <header>
-            <div class="container bar"><a href="{{ route('projects.index') }}">案件・修正依頼管理</a>@auth<form method="post"
-                        action="{{ route('logout') }}">@csrf<span>{{ auth()->user()->name }}</span> <button
-                        class="secondary">ログアウト</button></form>@endauth
-            </div>
+            <a class="brand" href="{{ route('projects.index') }}">
+                <span class="brand-mark" aria-hidden="true">≡</span>
+                <span>案件・修正依頼管理<small>PROJECT WORKSPACE</small></span>
+            </a>
+            @auth
+                <nav class="workspace-nav" aria-label="メインナビゲーション">
+                    <a href="{{ route('projects.index') }}">案件一覧</a>
+                </nav>
+                <form class="account" method="post" action="{{ route('logout') }}">
+                    @csrf
+                    <span>{{ auth()->user()->name }}</span>
+                    <button class="secondary">ログアウト</button>
+                </form>
+            @endauth
         </header>
         <main class="container">
             @if (session('success'))
